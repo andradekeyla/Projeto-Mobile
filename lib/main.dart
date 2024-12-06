@@ -32,30 +32,130 @@ class MyAppState extends ChangeNotifier {
     current = WordPair.random();
     notifyListeners();
   }
+
+  var favorites = <WordPair>[];
+
+  void Favoritar(){
+
+    if (favorites.contains(current)){
+      //Estou desfavoritando a palavra
+      favorites.remove(current);
+    } else {
+      favorites.add(current);
+    }
+    notifyListeners();
+  }
 }
 
-class MyHomePage extends StatelessWidget {
+class MyHomePage extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage>{
+
+  var selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context){
+
+    Widget page;
+    switch (selectedIndex){
+      case 0:
+        page = GeneratorPage();
+        break;
+      case 1:
+        page = FavoritePage();
+        break;
+      default:
+        throw UnimplementedError('Nenhuma página selecionada para $selectedIndex');
+
+    }
 
     return Scaffold(
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      body: Row(
         children: [
-          Text('Meu Primeiro APP Flutter:'),
-          BigCard(pair: pair),
-          ElevatedButton(
-            onPressed: () {
-              appState.getNext();
-             //  print("Botão foi pressionado");
-            },
-            child: Text ("Próxima"),
-          )
+          SafeArea(
+              child: NavigationRail(
+                extended: false,
+                destinations: [
+                  NavigationRailDestination(
+                      icon: Icon(Icons.home),
+                      label: Text("Principal")),
+                  NavigationRailDestination(
+                      icon: Icon(Icons.favorite),
+                      label: Text("Favoritos"))
+                ],
+                selectedIndex: selectedIndex,
+                onDestinationSelected: (value){
+                  setState(() {
+                    selectedIndex = value;
+                  });
+                },
+              ),
+          ),
+          Expanded(
+            child: Container(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              child: page,
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  // Widget build(BuildContext context) {
+  //
+  // }
+}
+
+class GeneratorPage extends StatelessWidget{
+  @override
+
+  Widget build (BuildContext context){
+    var appState = context.watch<MyAppState>();
+      var pair = appState.current;
+
+      IconData icon;
+
+      if (appState.favorites.contains((pair))){
+        icon = Icons.favorite;
+      } else {
+        icon = Icons.favorite_border;
+      }
+
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            BigCard(pair: pair),
+            Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      appState.getNext();
+                      //  print("Botão foi pressionado");
+                    },
+                    child: Text ("Próxima"),
+                  ),
+                  SizedBox(width: 10),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      appState.Favoritar();
+                    },
+                    label: Text('Favoritar'),
+                    icon: Icon(icon),
+                  )
+                ]
+
+            ),
+
+          ],
+        ),
+      );
+
   }
 }
 
@@ -85,5 +185,33 @@ class BigCard extends StatelessWidget {
       )
     );
       //Text(pair.asLowerCase);
+  }
+}
+
+class FavoritePage extends StatelessWidget {
+
+  @override
+  Widget build(BuildContext context){
+    var appState = context.watch<MyAppState>();
+
+    if (appState.favorites.isEmpty){
+      return Center(
+        child: Text('Nenhuma dupla de palavras foi favoritada'),
+      );
+    }
+
+    return ListView(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Text('Você possui ${appState.favorites.length} favoritos'),
+        ),
+        for (var wordpair in appState.favorites)
+          ListTile(
+            leading: Icon(Icons.favorite),
+            title: Text(wordpair.asLowerCase),
+          ),
+      ],
+    );
   }
 }
